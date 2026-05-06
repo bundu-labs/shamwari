@@ -17,7 +17,7 @@ dependencies = [
     "pydantic-settings==2.7.1",
     "fastapi==0.115.6",
     "uvicorn[standard]==0.34.0",
-    "stytch==11.5.0",
+    "pyjwt[crypto]==2.10.1",
     "httpx==0.28.1",
 ]
 
