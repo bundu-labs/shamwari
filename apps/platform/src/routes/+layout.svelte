@@ -12,7 +12,6 @@
   const { children }: { children: Snippet } = $props();
 
   const meta = $derived(page.data.meta as PageMeta);
-  const authed = $derived(page.url.pathname.startsWith("/dashboard"));
   const orgLd = platformOrganization();
   const siteLd = platformWebSite();
 </script>
@@ -47,7 +46,7 @@
 <JsonLd data={siteLd} />
 
 <div class="flex min-h-screen flex-col">
-  <Header {authed} />
+  <Header />
   <main class="flex-1">
     {@render children()}
   </main>

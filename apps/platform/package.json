@@ -12,7 +12,8 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@shamwari/ui": "*"
+    "@shamwari/ui": "*",
+    "@workos/authkit-sveltekit": "^0.3.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",

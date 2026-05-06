@@ -1,6 +1,16 @@
+import { sequence } from "@sveltejs/kit/hooks";
+import { configureAuthKit, authKitHandle } from "@workos/authkit-sveltekit";
+import { env } from "$env/dynamic/private";
 import type { Handle } from "@sveltejs/kit";
 
-export const handle: Handle = async ({ event, resolve }) => {
+configureAuthKit({
+  clientId: env.WORKOS_CLIENT_ID,
+  apiKey: env.WORKOS_API_KEY,
+  redirectUri: env.WORKOS_REDIRECT_URI,
+  cookiePassword: env.WORKOS_COOKIE_PASSWORD,
+});
+
+const securityHeaders: Handle = async ({ event, resolve }) => {
   const response = await resolve(event);
 
   response.headers.set("X-Content-Type-Options", "nosniff");
@@ -18,3 +28,5 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   return response;
 };
+
+export const handle = sequence(authKitHandle(), securityHeaders);

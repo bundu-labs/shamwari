@@ -9,6 +9,9 @@
     { href: "/blog", label: "Blog" },
     { href: "/faq", label: "FAQ" },
   ];
+
+  const user = $derived(page.data.user as { email?: string } | null);
+  const authed = $derived(Boolean(user));
 </script>
 
 <header
@@ -39,12 +42,32 @@
       >
         Platform
       </a>
-      <a
-        href="/chat"
-        class="rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:opacity-90"
-      >
-        Try Shamwari
-      </a>
+      {#if authed}
+        <a
+          href="/chat"
+          class="rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:opacity-90"
+        >
+          Open chat
+        </a>
+        <form method="POST" action="/logout">
+          <button class="text-muted-foreground hover:text-foreground">
+            Sign out
+          </button>
+        </form>
+      {:else}
+        <a
+          href="/sign-in?returnTo=%2Fchat"
+          class="text-muted-foreground hover:text-foreground"
+        >
+          Sign in
+        </a>
+        <a
+          href="/sign-up?returnTo=%2Fchat"
+          class="rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:opacity-90"
+        >
+          Try Shamwari
+        </a>
+      {/if}
     </div>
   </div>
 </header>

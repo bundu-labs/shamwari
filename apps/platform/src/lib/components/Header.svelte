@@ -1,7 +1,8 @@
 <script lang="ts">
   import { page } from "$app/state";
 
-  const { authed = false }: { authed?: boolean } = $props();
+  const user = $derived(page.data.user as { email?: string } | null);
+  const authed = $derived(Boolean(user));
 
   const dashboardNav = [
     { href: "/dashboard", label: "Overview" },
@@ -52,6 +53,11 @@
         Docs
       </a>
       {#if authed}
+        {#if user?.email}
+          <span class="hidden text-muted-foreground md:inline">
+            {user.email}
+          </span>
+        {/if}
         <form method="POST" action="/logout">
           <button class="text-muted-foreground hover:text-foreground">
             Sign out
@@ -59,13 +65,13 @@
         </form>
       {:else}
         <a
-          href="/login"
+          href="/sign-in"
           class="text-muted-foreground hover:text-foreground"
         >
           Sign in
         </a>
         <a
-          href="/signup"
+          href="/sign-up"
           class="rounded-md bg-primary px-3 py-1.5 text-primary-foreground hover:opacity-90"
         >
           Get an API key

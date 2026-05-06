@@ -20,13 +20,13 @@
     </p>
     <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
       <a
-        href="/signup"
+        href="/sign-up"
         class="rounded-md bg-primary px-5 py-2.5 text-primary-foreground hover:opacity-90"
       >
         Create an account
       </a>
       <a
-        href="/login"
+        href="/sign-in"
         class="rounded-md border border-border px-5 py-2.5 hover:bg-muted"
       >
         Sign in

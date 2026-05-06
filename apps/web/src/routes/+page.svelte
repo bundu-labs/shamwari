@@ -57,7 +57,7 @@
     </p>
     <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
       <a
-        href="/chat"
+        href="/sign-up?returnTo=%2Fchat"
         class="rounded-md bg-primary px-5 py-2.5 text-primary-foreground hover:opacity-90"
       >
         Try Shamwari free
