@@ -1,59 +1,55 @@
 <script lang="ts">
   import "../app.css";
+  import type { Snippet } from "svelte";
+  import { page } from "$app/state";
   import { ModeWatcher } from "mode-watcher";
-  import {
-    JsonLd,
-    buildOrganization,
-    buildWebSite,
-  } from "@shamwari/ui";
+  import { JsonLd } from "@shamwari/ui";
+  import { platformOrganization, platformWebSite } from "$lib/seo/jsonld";
+  import { SITE, type PageMeta } from "$lib/seo/meta";
+  import Header from "$lib/components/Header.svelte";
+  import Footer from "$lib/components/Footer.svelte";
 
-  const { children } = $props();
+  const { children }: { children: Snippet } = $props();
 
-  const nyuchiOrg = buildOrganization({
-    name: "Nyuchi Africa",
-    url: "https://nyuchi.africa",
-    description:
-      "Zimbabwean tech company building open source, community-based platforms for Africa.",
-    founder: { name: "Bryan Fawcett" },
-  });
-
-  const platformSite = buildWebSite({
-    name: "Shamwari AI Platform",
-    url: "https://platform.shamwari.ai",
-    description:
-      "Developer and business portal — API keys, usage dashboards, billing, and documentation for Shamwari AI.",
-    publisher: { name: "Nyuchi Africa", url: "https://nyuchi.africa" },
-    inLanguage: ["en"],
-  });
+  const meta = $derived(page.data.meta as PageMeta);
+  const authed = $derived(page.url.pathname.startsWith("/dashboard"));
+  const orgLd = platformOrganization();
+  const siteLd = platformWebSite();
 </script>
 
 <svelte:head>
-  <title>Shamwari AI Platform</title>
-  <meta
-    name="description"
-    content="Developer and business portal — API keys, usage dashboards, billing, and documentation for Shamwari AI."
-  />
-  <link rel="canonical" href="https://platform.shamwari.ai" />
-  <meta name="robots" content="noindex, nofollow" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Shamwari AI Platform" />
-  <meta property="og:locale" content="en_US" />
-  <meta property="og:title" content="Shamwari AI Platform" />
-  <meta
-    property="og:description"
-    content="Developer and business portal — API keys, usage dashboards, billing, and documentation for Shamwari AI."
-  />
-  <meta property="og:url" content="https://platform.shamwari.ai" />
+  <title>{meta.title}</title>
+  <meta name="description" content={meta.description} />
+  <link rel="canonical" href={meta.canonical} />
+  {#if meta.noindex}
+    <meta name="robots" content="noindex, nofollow" />
+  {:else}
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+  {/if}
+
+  <meta property="og:type" content={meta.ogType} />
+  <meta property="og:site_name" content={SITE.name} />
+  <meta property="og:locale" content={SITE.locale} />
+  <meta property="og:title" content={meta.title} />
+  <meta property="og:description" content={meta.description} />
+  <meta property="og:url" content={meta.canonical} />
+  <meta property="og:image" content={meta.ogImage} />
+
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Shamwari AI Platform" />
-  <meta
-    name="twitter:description"
-    content="Developer and business portal — API keys, usage dashboards, billing, and documentation for Shamwari AI."
-  />
+  <meta name="twitter:site" content={SITE.twitter} />
+  <meta name="twitter:title" content={meta.title} />
+  <meta name="twitter:description" content={meta.description} />
+  <meta name="twitter:image" content={meta.ogImage} />
 </svelte:head>
 
 <ModeWatcher defaultMode="system" />
-<JsonLd data={nyuchiOrg} />
-<JsonLd data={platformSite} />
+<JsonLd data={orgLd} />
+<JsonLd data={siteLd} />
 
-{@render children()}
+<div class="flex min-h-screen flex-col">
+  <Header {authed} />
+  <main class="flex-1">
+    {@render children()}
+  </main>
+  <Footer />
+</div>
