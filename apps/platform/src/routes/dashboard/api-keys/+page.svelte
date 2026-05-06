@@ -1,23 +1,26 @@
 <script lang="ts">
-  let keys = $state<{ id: string; label: string; lastUsed: string }[]>([]);
-  let newLabel = $state("");
+  import { enhance } from "$app/forms";
+  import type { ActionData, PageData } from "./$types";
 
-  function createKey(e: Event) {
-    e.preventDefault();
-    if (!newLabel) return;
-    keys = [
-      ...keys,
-      {
-        id: `sk_live_${Math.random().toString(36).slice(2, 10)}`,
-        label: newLabel,
-        lastUsed: "Never",
-      },
-    ];
-    newLabel = "";
-  }
+  const {
+    data,
+    form,
+  }: { data: PageData; form: ActionData | null } = $props();
 
-  function revoke(id: string) {
-    keys = keys.filter((key) => key.id !== id);
+  let label = $state("");
+  let confirmingRevoke = $state<string | null>(null);
+
+  // Pull the freshly-minted secret out of the action result for one render.
+  const justCreated = $derived(
+    form && "created" in form ? form.created : null,
+  );
+
+  async function copySecret(secret: string) {
+    try {
+      await navigator.clipboard.writeText(secret);
+    } catch {
+      /* noop — modern browsers may block clipboard outside HTTPS */
+    }
   }
 </script>
 
@@ -27,16 +30,49 @@
   creation; we hash and store only the prefix.
 </p>
 
+{#if justCreated}
+  <div
+    class="mt-6 rounded-lg border border-primary bg-primary/5 p-4"
+    role="status"
+  >
+    <p class="text-sm font-semibold">
+      Key issued — copy it now. We won't show it again.
+    </p>
+    <div class="mt-3 flex flex-wrap items-center gap-3">
+      <code
+        class="block flex-1 break-all rounded-md bg-background px-3 py-2 font-mono text-sm"
+        >{justCreated.secret}</code
+      >
+      <button
+        type="button"
+        onclick={() => copySecret(justCreated.secret)}
+        class="rounded-md border border-border px-3 py-2 text-sm hover:bg-muted"
+      >
+        Copy
+      </button>
+    </div>
+  </div>
+{/if}
+
+{#if form && "error" in form && form.error}
+  <p class="mt-4 text-sm text-destructive" role="alert">{form.error}</p>
+{/if}
+
 <form
-  onsubmit={createKey}
+  method="POST"
+  action="?/create"
+  use:enhance
   class="mt-8 flex gap-3 rounded-lg border border-border bg-card p-4"
 >
   <label class="flex-1">
     <span class="block text-sm font-medium">Key label</span>
     <input
+      name="label"
       type="text"
-      bind:value={newLabel}
+      bind:value={label}
       placeholder="e.g. production-web"
+      maxlength="64"
+      required
       class="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
     />
   </label>
@@ -54,28 +90,56 @@
       <tr>
         <th class="px-4 py-2 font-medium">Label</th>
         <th class="px-4 py-2 font-medium">Key prefix</th>
+        <th class="px-4 py-2 font-medium">Created</th>
         <th class="px-4 py-2 font-medium">Last used</th>
         <th class="px-4 py-2"></th>
       </tr>
     </thead>
     <tbody>
-      {#each keys as key (key.id)}
+      {#each data.keys as key (key.id)}
         <tr class="border-t border-border">
           <td class="px-4 py-3">{key.label}</td>
-          <td class="px-4 py-3 font-mono text-xs">{key.id.slice(0, 12)}…</td>
-          <td class="px-4 py-3 text-muted-foreground">{key.lastUsed}</td>
+          <td class="px-4 py-3 font-mono text-xs">{key.prefix}…</td>
+          <td class="px-4 py-3 text-muted-foreground">
+            {new Date(key.createdAt).toLocaleDateString()}
+          </td>
+          <td class="px-4 py-3 text-muted-foreground">
+            {key.lastUsedAt
+              ? new Date(key.lastUsedAt).toLocaleString()
+              : "Never"}
+          </td>
           <td class="px-4 py-3 text-right">
-            <button
-              onclick={() => revoke(key.id)}
-              class="text-sm text-destructive hover:underline"
-            >
-              Revoke
-            </button>
+            {#if confirmingRevoke === key.id}
+              <form method="POST" action="?/revoke" use:enhance class="inline">
+                <input type="hidden" name="id" value={key.id} />
+                <button
+                  type="submit"
+                  class="text-sm font-medium text-destructive hover:underline"
+                >
+                  Confirm revoke
+                </button>
+                <button
+                  type="button"
+                  onclick={() => (confirmingRevoke = null)}
+                  class="ml-2 text-sm text-muted-foreground hover:underline"
+                >
+                  Cancel
+                </button>
+              </form>
+            {:else}
+              <button
+                type="button"
+                onclick={() => (confirmingRevoke = key.id)}
+                class="text-sm text-destructive hover:underline"
+              >
+                Revoke
+              </button>
+            {/if}
           </td>
         </tr>
       {:else}
         <tr>
-          <td colspan="4" class="px-4 py-10 text-center text-muted-foreground">
+          <td colspan="5" class="px-4 py-10 text-center text-muted-foreground">
             No keys yet. Issue your first key above.
           </td>
         </tr>
