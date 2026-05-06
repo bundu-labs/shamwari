@@ -33,6 +33,8 @@
     name="description"
     content="Developer and business portal — API keys, usage dashboards, billing, and documentation for Shamwari AI."
   />
+  <link rel="canonical" href="https://platform.shamwari.ai" />
+  <meta name="robots" content="noindex, nofollow" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Shamwari AI Platform" />
   <meta property="og:locale" content="en_US" />
