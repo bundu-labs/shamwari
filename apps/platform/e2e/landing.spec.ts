@@ -7,9 +7,16 @@ import { expect, test } from "@playwright/test";
 
 test("landing renders and shows sign-in CTAs", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Build with Shamwari AI/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Create an account/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /^Sign in$/i })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: /Build with Shamwari AI/i }),
+  ).toBeVisible();
+  // Both the header and hero CTA expose "Sign in"; scope to header.
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: /^Sign in$/i }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: /Create an account/i }),
+  ).toBeVisible();
 });
 
 test("dashboard requires sign-in", async ({ page }) => {
