@@ -13,7 +13,7 @@ export default defineConfig({
     command: "npm run build && npm run preview",
     port: 3000,
     reuseExistingServer: !process.env.CI,
-    timeout: 180_000,
+    timeout: 300_000,
     env: {
       WORKOS_CLIENT_ID: "client_test_e2e",
       WORKOS_API_KEY: "REPLACE_AT_RUNTIME",
