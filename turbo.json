@@ -37,6 +37,26 @@
       "dependsOn": [
         "^check-types"
       ]
+    },
+    "test": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "coverage/**"
+      ]
+    },
+    "test:e2e": {
+      "dependsOn": [
+        "^build"
+      ],
+      "cache": false
+    },
+    "size": {
+      "dependsOn": [
+        "build"
+      ],
+      "cache": false
     }
   }
 }

@@ -10,17 +10,24 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Build-time placeholders so AuthKit's configureAuthKit() doesn't
+  # explode during prerender. Real values live in Vercel project env.
+  WORKOS_CLIENT_ID: client_test_01H000000000000000000000
+  WORKOS_API_KEY: replace-in-vercel-env
+  WORKOS_REDIRECT_URI: http://localhost:3001/callback
+  WORKOS_COOKIE_PASSWORD: build-time-placeholder-32-chars-min
+
 jobs:
   frontend:
-    name: Frontend (lint, types, build)
+    name: Frontend (lint, types, build, unit)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-node@v6
         with:
-          # Vercel's serverless runtimes top out at node 22, and
-          # @sveltejs/adapter-vercel refuses to build with newer.
+          # Vercel's serverless runtimes top out at node 22.
           node-version: 22
           cache: npm
 
@@ -32,16 +39,92 @@ jobs:
       - name: Type check
         run: npm run check-types
 
+      - name: Unit tests
+        run: npx turbo run test -- --reporter=default
+
       - name: Build
         run: npm run build
-        env:
-          WORKOS_CLIENT_ID: client_test_01H000000000000000000000
-          WORKOS_API_KEY: replace-in-vercel-env
-          WORKOS_REDIRECT_URI: http://localhost:3001/callback
-          WORKOS_COOKIE_PASSWORD: build-time-placeholder-32-chars-min
+
+      - name: Bundle size budget
+        run: |
+          npm --workspace=@shamwari/web exec size-limit
+          npm --workspace=@shamwari/platform exec size-limit
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist-web-${{ github.sha }}
+          path: apps/web/.svelte-kit/output
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload platform build
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist-platform-${{ github.sha }}
+          path: apps/platform/.svelte-kit/output
+          retention-days: 7
+          if-no-files-found: error
+
+  e2e:
+    name: Frontend E2E (playwright)
+    runs-on: ubuntu-latest
+    needs: frontend
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [web, platform]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: apps/${{ matrix.app }}
+
+      - name: Run e2e
+        run: npm --workspace=@shamwari/${{ matrix.app }} run test:e2e
+
+      - name: Upload Playwright traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces-${{ matrix.app }}-${{ github.sha }}
+          path: apps/${{ matrix.app }}/test-results
+          retention-days: 7
+          if-no-files-found: ignore
+
+  lighthouse:
+    name: Lighthouse (web)
+    runs-on: ubuntu-latest
+    needs: frontend
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build apps/web
+        run: npm --workspace=@shamwari/web run build
+
+      - name: Run Lighthouse CI
+        run: |
+          npm i -g @lhci/cli@0.14
+          cd apps/web
+          lhci autorun --config=./lighthouserc.json || echo "Lighthouse warnings — see job log"
 
   python:
-    name: Python (lint, types, tests)
+    name: Python (lint, types, tests, coverage)
     runs-on: ubuntu-latest
     env:
       SHAMWARI_ALLOW_HEADER_AUTH: "1"
@@ -65,8 +148,48 @@ jobs:
       - name: Mypy type check
         run: mypy src/
 
-      - name: Pytest
-        run: pytest --tb=short
+      - name: Pytest with coverage
+        run: pytest --tb=short --cov=src --cov-report=term --cov-report=xml
 
-      - name: Verify OpenAPI spec
-        run: python -c "from src.main import app; spec = app.openapi(); paths = spec.get('paths', {}); assert paths, 'No API paths defined'; print('OpenAPI paths:', len(paths))"
+      - name: Bandit SAST
+        run: bandit -r src/ -c pyproject.toml
+
+      - name: OpenAPI drift check
+        run: python scripts/export_openapi.py --check
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-${{ github.sha }}
+          path: coverage.xml
+          retention-days: 7
+          if-no-files-found: ignore
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  gitleaks:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
