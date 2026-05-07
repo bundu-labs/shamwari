@@ -88,6 +88,9 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: apps/${{ matrix.app }}
 
+      - name: Build app under test
+        run: npm --workspace=@shamwari/${{ matrix.app }} run build
+
       - name: Run e2e
         run: npm --workspace=@shamwari/${{ matrix.app }} run test:e2e
 

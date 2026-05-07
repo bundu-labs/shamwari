@@ -10,10 +10,10 @@ export default defineConfig({
     trace: "on-first-retry",
   },
   webServer: {
-    command: "npm run build && npm run preview",
+    command: "npm run preview",
     port: 3001,
     reuseExistingServer: !process.env.CI,
-    timeout: 300_000,
+    timeout: 120_000,
     env: {
       WORKOS_CLIENT_ID: "client_test_e2e",
       WORKOS_API_KEY: "REPLACE_AT_RUNTIME",
