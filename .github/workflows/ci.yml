@@ -19,7 +19,9 @@ jobs:
 
       - uses: actions/setup-node@v6
         with:
-          node-version: 24
+          # Vercel's serverless runtimes top out at node 22, and
+          # @sveltejs/adapter-vercel refuses to build with newer.
+          node-version: 22
           cache: npm
 
       - run: npm ci
