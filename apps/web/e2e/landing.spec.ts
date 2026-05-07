@@ -9,7 +9,9 @@ test("hero renders with primary CTA", async ({ page }) => {
   await expect(
     page.getByRole("heading", { name: /open-source AI built for Africa/i }),
   ).toBeVisible();
-  await expect(page.getByRole("link", { name: /Try Shamwari/i })).toBeVisible();
+  await expect(
+    page.getByRole("banner").getByRole("link", { name: /Try Shamwari/i }),
+  ).toBeVisible();
 });
 
 test("docs index lists quickstart link", async ({ page }) => {
